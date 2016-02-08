@@ -311,7 +311,6 @@ $form['#action'] = 'mytracker';
 
 function cargo_status_form_validate($form, &$form_state) {
 
-  $form_state['storage']['test'] = 'Новое значение';
   $form_state['rebuild'] = TRUE;
 
 }
