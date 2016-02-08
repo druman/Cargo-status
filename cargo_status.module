@@ -1,0 +1,365 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function cargo_status_menu() {
+  $items = array();
+
+  $items['mytracker'] = array(
+    'title' => t('Status of delivery'),
+    'description' => 'Edit this node.',
+	'page callback' => 'drupal_get_form', 			// Calls the Drupal Form API
+	'page arguments' => array('cargo_status_form'), 	// Pass the function to pass to Form API
+//	'page callback'=> 'cargo_status_delivery_page',
+	'type' => MENU_NORMAL_ITEM,
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function cargo_status_block_info() {
+  $blocks = array();
+
+  $blocks['cargo'] = array(
+    'info' => t('Cargo status'), 
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function cargo_status_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    case 'cargo':
+      $block['subject'] = t('Status of delivery');
+      $block['content'] = drupal_get_form('cargo_status_form');
+    break;
+  }
+  return $block;
+}
+
+/**
+ * Custom form.
+ */
+function cargo_status_form($form, &$form_state) {
+
+
+  $form['docid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Number cargo'),
+  );
+
+  $form['submit'] = array(
+      '#type' => 'submit',
+	  '#value' => t('Check'),
+      '#attributes' => array('class' => array('btn-info')),
+  );
+  
+if (isset($form_state['values'])) {
+
+// Получаем статус доставки груза
+$res = cargo_search($form_state['input']['docid']);
+
+$out = array(); $info = '';
+
+drupal_add_css(drupal_get_path('module', 'cargo_status') .'/cargo.css');
+
+$out = '<div class="freight_info">';
+if (isset($res['state'])) {
+$state = $res['state'];
+
+switch ($state) {
+
+    case "processing":
+		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].' '.t("order").'</p></div>';
+		$info .= '<div id="freight_text">';
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong></p></div>';
+        break;
+		
+    case "finished":
+		$timestamp = strtotime($res['arrival_date']);
+		$info = '<div class="freight_state finished" id="freight_state"><p>'.$res['state_name'].' '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+		$info .= '<div id="freight_text finished"><p>'.t("Cargo issued").'</p></div>';
+        break;
+		
+    case "declined":
+		$info = '<div class="freight_state" id="freight_state"><p>'.t("Order").': '.$res['state_name'].'</p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><br/>
+       '.t('Decline reason').': <strong>'.$res['decline_reason'].'</strong></p></div>';
+        break;
+		
+    case "inway":
+		$timestamp = strtotime($res['arrival_date']);
+		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].'</p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><br/>
+       '.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+        
+        break;
+		
+    case "delivery":
+		$timestamp = strtotime($res['arrival_date']);
+		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].' '.t("recipient").'</p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
+		$info .= '<p>'.$res['state_name'].' '.t("recipient").' '.t("in").'<strong> '.$res['arrival_city'].'</strong><br/>
+       '.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+        
+        break;
+		
+    case "pickup":
+		$timestamp = strtotime($res['arrival_date']);
+		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].'</p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><br/>
+       '.t('Arrival date terminal').': '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+        
+        break;
+		
+    case "waiting":
+		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].'</p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong></p></div>';
+        break;
+		
+    case "arrived": case "warehousing":
+	
+		$timestamp = strtotime($res['arrival_date']);
+		$warehousing_date = strtotime($res['warehousing_date']);
+		$info = '<div class="freight_state" id="freight_state">';
+		$info .= '<p>'.$res['state_name'].' <strong>'.format_date($timestamp, 'custom', 'j F Y').'</strong></p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}		
+		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br>'.t("Pay storage begins").' '.format_date($warehousing_date, 'custom', 'j F Y').'</p>';
+		$info .= '<div class="map_address">
+					  <strong>'.t("Address").':</strong> '.$res['arrival_terminal_address'].' <br/>
+					  <strong>'.t("Phone").':</strong> '.$res['arrival_terminal_phones'].' <br/>
+					  <strong>'.t("Phone contact center").':</strong> '.$res['arrival_cc_phones'].' <br/>
+					  <strong>'.t("Email").':</strong> '.$res['arrival_terminal_email'].' <br/>
+					  <strong>'.t("Coordinates").':</strong> '.$res['arrival_terminal_coordinates'][0].' '.t("e.d").' '.$res['arrival_terminal_coordinates'][1].' '.t("n.l").' <br/>
+				 </div>';
+		if (!empty($res['worktables'])) {	 
+			$wt = array();
+			$info .= '<p> <strong>'.t("Schedule delivery of the goods").':</strong> </p>
+					<table class="table table-bordered"><tr>';
+			foreach ($res['worktables'] as $key => $days):
+				$wt[date('N', strtotime($key))] = $days; 
+			endforeach;
+			ksort($wt);
+			reset($wt);
+			foreach ($wt as $dw => $work) {
+				$days = array("Пн","Вт","Ср","Чт","Пт","Сб","Вс");
+				$info .= '<th class="text-center">'.$days[$dw-1].'</th>';
+			}
+			$info .= '</tr><tr>';
+			foreach ($wt as $dw => $work) {
+				$info .= '<td>'.$work.'</td>';
+			}			
+			$info .= '</tr></table>';
+		}
+		$info .= '</div>';
+		
+        break;
+		
+    case "received": 
+	
+		$timestamp = strtotime($res['arrival_date']);
+		$info = '<div class="freight_state" id="freight_state">';
+		$info .= '<p>'.$res['state_name'].' </p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}		
+		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong></p>';
+		$info .= '<div class="map_address">
+					  <strong>'.t("Address").':</strong> '.$res['arrival_terminal_address'].' <br/>
+					  <strong>'.t("Phone").':</strong> '.$res['arrival_terminal_phones'].' <br/>
+					  <strong>'.t("Phone contact center").':</strong> '.$res['arrival_cc_phones'].' <br/>
+					  <strong>'.t("Email").':</strong> '.$res['arrival_terminal_email'].' <br/>
+					  <strong>'.t("Coordinates").':</strong> '.$res['arrival_terminal_coordinates'][0].' '.t("e.d").' '.$res['arrival_terminal_coordinates'][1].' '.t("n.l").' <br/>
+				 </div>';
+		if (!empty($res['worktables'])) {	 
+			$wt = array();
+			$info .= '<p> <strong>'.t("Schedule delivery of the goods").':</strong> </p>
+					<table class="table table-bordered"><tr>';
+			foreach ($res['worktables'] as $key => $days):
+				$wt[date('N', strtotime($key))] = $days; 
+			endforeach;
+			ksort($wt);
+			reset($wt);
+			foreach ($wt as $dw => $work) {
+				$days = array("Пн","Вт","Ср","Чт","Пт","Сб","Вс");
+				$info .= '<th class="text-center">'.$days[$dw-1].'</th>';
+			}
+			$info .= '</tr><tr>';
+			foreach ($wt as $dw => $work) {
+				$info .= '<td>'.$work.'</td>';
+			}			
+			$info .= '</tr></table>';
+		}
+			$info .= '<p>'.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p>';		
+		
+		
+		$info .= '</div>';
+		
+        break;
+		
+    case "received_warehousing": 
+	
+		$timestamp = strtotime($res['arrival_date']);
+		$warehousing_date = strtotime($res['warehousing_date']);
+		$info = '<div class="freight_state" id="freight_state">';
+		$info .= '<p>'.$res['state_name'].' </p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}		
+		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br>'.t("Pay storage begins").' '.format_date($warehousing_date, 'custom', 'j F Y').'</p>';
+		$info .= '<div class="map_address">
+					  <strong>'.t("Address").':</strong> '.$res['arrival_terminal_address'].' <br/>
+					  <strong>'.t("Phone").':</strong> '.$res['arrival_terminal_phones'].' <br/>
+					  <strong>'.t("Phone contact center").':</strong> '.$res['arrival_cc_phones'].' <br/>
+					  <strong>'.t("Email").':</strong> '.$res['arrival_terminal_email'].' <br/>
+					  <strong>'.t("Coordinates").':</strong> '.$res['arrival_terminal_coordinates'][0].' '.t("e.d").' '.$res['arrival_terminal_coordinates'][1].' '.t("n.l").' <br/>
+				 </div>';
+		if (!empty($res['worktables'])) {	 
+			$wt = array();
+			$info .= '<p> <strong>'.t("Schedule delivery of the goods").':</strong> </p>
+					<table class="table table-bordered"><tr>';
+			foreach ($res['worktables'] as $key => $days):
+				$wt[date('N', strtotime($key))] = $days; 
+			endforeach;
+			ksort($wt);
+			reset($wt);
+			foreach ($wt as $dw => $work) {
+				$days = array("Пн","Вт","Ср","Чт","Пт","Сб","Вс");
+				$info .= '<th class="text-center">'.$days[$dw-1].'</th>';
+			}
+			$info .= '</tr><tr>';
+			foreach ($wt as $dw => $work) {
+				$info .= '<td>'.$work.'</td>';
+			}			
+			$info .= '</tr></table>';
+		}
+			$info .= '<p>'.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p>';		
+		
+		
+		$info .= '</div>';
+		
+        break;
+		
+    case "airport_warehousing":
+	
+		$timestamp = strtotime($res['arrival_date']);
+		$warehousing_date = strtotime($res['warehousing_date']);
+		
+		$info = '<div class="freight_state" id="freight_state">';
+		$info .= '<p>'.$res['state_name'].' <strong>'.format_date($timestamp, 'custom', 'j F Y').'</strong></p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
+		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br>'.t("Pay storage begins").' '.format_date($warehousing_date, 'custom', 'j F Y').'</p>';
+		$info .= '<div class="map_address">
+					  <strong>'.t("Airway bill number").':</strong> '.$res['air_order_id'].' <br/>
+					  <strong>'.t("Comment waybill").':</strong> '.$res['comment'].' <br/>
+				 </div>';		
+		$info .= '</div>';
+        break;
+		
+    case "accompanying_documents_return":
+		$timestamp = strtotime($res['arrival_date']);
+		$timestamp_documents = strtotime($res['documents_return_date']);
+		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].'</p></div>';
+		$info .= '<div id="freight_text">';
+		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><br/>
+       '.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'<br/>'.t('
+The estimated date of return of supporting documents').': '.format_date($timestamp_documents, 'custom', 'j F, Y').'</p></div>';
+        
+        break;
+		
+
+}
+
+} else {
+	$info = '<div class="error"><p class="lead">'.t('Cargo not found').'</p></div>';
+}
+$out .= $info;
+
+$out .= '</div>';
+//dpm($res);
+
+$form['results'] = array('#markup'=>'<div class="delivery-result">'.$out.'</div>');
+
+}
+  
+//$form['#method'] = 'post';
+$form['#action'] = 'mytracker'; 
+   
+
+  return $form;
+}
+
+function cargo_status_form_validate($form, &$form_state) {
+
+  $form_state['storage']['test'] = 'Новое значение';
+  $form_state['rebuild'] = TRUE;
+
+}
+
+
+/**
+ * Form submit callback
+ */
+function cargo_status_form_submit($form, $form_state) {
+ //$res = cargo_search($form_state['input']['docid']);
+}
+
+
+function cargo_search($docid) {
+
+$decoded_json = array();
+
+  if (!empty($docid)) {
+  
+$data = json_encode(array(
+	 "appKey" => "F440CADE-CB14-11E5-A0DE-00505683A7D5", // ключ вашего приложения
+	 "docid" => $docid // номер
+));
+	
+/*
+через CURL
+$ch = curl_init('https://api.dellin.ru/v2/public/tracker.json');
+curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
+curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+# Send request.
+$result = curl_exec($ch);
+curl_close($ch);
+# Print response.
+//echo "<pre>$result</pre>";
+*/
+
+$options = array(
+   // 'method' => 'POST',
+    'data' => $data,
+    'headers' => array('Content-Type' => 'application/json'),
+  );
+  $result = drupal_http_request('https://api.dellin.ru/v2/public/tracker.json', $options);
+  $decoded_json = drupal_json_decode($result->data);
+ // dpm($decoded_json);
+
+
+  }
+  
+  return $decoded_json;
+}

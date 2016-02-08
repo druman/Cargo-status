@@ -1,0 +1,62 @@
+.delivery-result {
+	margin-top:20px;
+}
+.freight_info {
+    position: relative;
+    padding: 17px 30px 20px;
+    border: 1px solid #c2d0e2;
+    border-radius: 5px;
+    background: #e5ebf3;
+}
+.freight_state {
+    font-size: 20px;
+    margin-bottom: 10px;
+    /* margin-top: 7px; */
+}
+.delivery-result p {
+    line-height: 21px;
+}
+.delivery-result p.lead {
+    margin-bottom: 0;
+}
+#freight_text {
+    margin-bottom: 7px;
+}
+#freight_text>p {
+    padding: 0 !important;
+}
+.delivery-result .freight_info:before {
+    border-color: rgba(194,208,226,0);
+    border-bottom-color: #c2d0e2;
+    border-width: 13px;
+    margin-left: -13px;
+}
+.delivery-result .freight_info:after {
+    bottom: 100%;
+    left: 50%;
+    border: solid transparent;
+    content: " ";
+    height: 0;
+    width: 0;
+    position: absolute;
+    pointer-events: none;
+}
+.tracker #freight_additional {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid #bfc0bf;
+}
+.delivery-result .blocked_by_payment {
+    color: #900;
+    margin-top: -7px;
+}
+.freight_state strong {
+	font-size: 0.9em;
+}
+.map_address {
+    line-height: 20px;
+    padding-bottom: 15px;
+}
+.delivery-result .finished {
+    color: #48AC06;
+}
