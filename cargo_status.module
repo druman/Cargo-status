@@ -122,22 +122,33 @@ $text = theme('image', array(
     'title' => t('Delline'),
     'attributes' => array('class' => 'logo-delline'),
   ));
+  
+$link = '<a href="/mytracker/advanced" class="adv-tr"><i class="fa fa-search-plus"></i>'.t("Search by other data").'</a>';  
+  
 
 $form['info'] = array(
 	'#type' => 'item',
 	'#markup' => '<div class="logo1">'.$text.'</div>',
 );
-  $form['docid'] = array(
+
+$form['docid'] = array(
     '#type' => 'textfield',
     '#title' => t('Number cargo'),
 	'#default_value' => $def_val,
   );
+  
+$form['advanced'] = array(
+	'#type' => 'item',
+	'#markup' => '<div class="advanced-tracker">'.$link.'</div>',
+);
 
-  $form['submit'] = array(
-      '#type' => 'submit',
-	  '#value' => t('Check'),
-      '#attributes' => array('class' => array('btn-info')),
-  );
+$form['submit'] = array(
+    '#type' => 'submit',
+	'#value' => t('Check'),
+    '#attributes' => array('class' => array('btn-info')),
+);
+
+drupal_add_css(drupal_get_path('module', 'cargo_status') .'/cargo.css');
   
 if (isset($form_state['values'])) {
 
@@ -145,8 +156,6 @@ if (isset($form_state['values'])) {
 $res = cargo_search($form_state['input']['docid']);
 
 $out = array(); $info = '';
-
-drupal_add_css(drupal_get_path('module', 'cargo_status') .'/cargo.css');
 
 $out = '<div class="freight_info">';
 if (isset($res['state'])) {

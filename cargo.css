@@ -1,5 +1,5 @@
 .delivery-result {
-	margin-top:20px;
+    margin-top: 20px;
 }
 .freight_info {
     position: relative;
@@ -11,7 +11,6 @@
 .freight_state {
     font-size: 20px;
     margin-bottom: 10px;
-    /* margin-top: 7px; */
 }
 .delivery-result p {
     line-height: 21px;
@@ -51,7 +50,7 @@
     margin-top: -7px;
 }
 .freight_state strong {
-	font-size: 0.9em;
+    font-size: 0.9em;
 }
 .map_address {
     line-height: 20px;
@@ -61,8 +60,18 @@
     color: #48AC06;
 }
 .state-title {
-	margin-top: 35px;
+    margin-top: 35px;
 }
-.ml5{
-margin-left:5px;
+.ml5 {
+    margin-left: 5px;
+}
+.advanced-tracker a {
+	padding-left: 5px;
+    font-size: 0.85em;
+}
+.advanced-tracker i {
+	padding-right: 5px;
+}
+.advanced-tracker {
+	float:right;
 }
