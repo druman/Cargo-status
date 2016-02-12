@@ -9,14 +9,74 @@ function cargo_status_menu() {
   $items['mytracker'] = array(
     'title' => t('Status of delivery'),
     'description' => 'Edit this node.',
-	'page callback' => 'drupal_get_form', 			// Calls the Drupal Form API
-	'page arguments' => array('cargo_status_form'), 	// Pass the function to pass to Form API
-//	'page callback'=> 'cargo_status_delivery_page',
+	'page callback' => 'drupal_get_form', 			
+	'page arguments' => array('cargo_status_form'), 	
 	'type' => MENU_NORMAL_ITEM,
     'access callback' => TRUE,
   );
+  $items['mytracker/advanced'] = array(
+    'title' => t('Search on incomplete data'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cargo_status_form_incomplete'),
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => array('access content'),
+  );
+  $items['admin/mytracker/settings'] = array(
+    'title' => t('Settings cargo status'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cargo_status_form_settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => array('access cargo status settings'),
+  );
   return $items;
 }
+
+/**
+ * Implements hook_permission().
+ */
+function cargo_status_permission() {
+  return array(
+    'access cargo status settings' => array(
+      'title' => t('Access cargo status settings'),
+    )
+  );
+}
+
+
+/**
+ * Form builder.
+ */
+function cargo_status_form_settings($form) {
+  $form['appkey'] = array(
+    '#type' => 'textfield',
+    '#title' => t('App Key'),
+    '#default_value' => variable_get('cargo_status_appkey'),
+  );
+  $form['myinn'] = array(
+    '#type' => 'textfield',
+    '#title' => t('My INN'),
+    '#default_value' => variable_get('cargo_status_inn'),
+  );
+ 
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+ 
+  return $form;
+}
+
+/**
+ * Form submit callback.
+ */
+function cargo_status_form_settings_submit($form, &$form_state) {
+
+  variable_set('cargo_status_appkey', $form_state['input']['appkey']);
+  variable_set('cargo_status_inn', $form_state['input']['myinn']);
+ 
+  drupal_set_message(t('Settings saved'));
+}
+
 
 /**
  * Implements hook_block_info().
@@ -52,10 +112,25 @@ function cargo_status_block_view($delta = '') {
  */
 function cargo_status_form($form, &$form_state) {
 
+//dpm($_GET['id']);
+$def_val = '';
+if(!empty($_GET['id'])) { $def_val = $_GET['id'];}
+ 
+$text = theme('image', array(
+    'path' => drupal_get_path('module', 'cargo_status') . '/dline.png',
+    'alt' => t('Delline'),
+    'title' => t('Delline'),
+    'attributes' => array('class' => 'logo-delline'),
+  ));
 
+$form['info'] = array(
+	'#type' => 'item',
+	'#markup' => '<div class="logo1">'.$text.'</div>',
+);
   $form['docid'] = array(
     '#type' => 'textfield',
     '#title' => t('Number cargo'),
+	'#default_value' => $def_val,
   );
 
   $form['submit'] = array(
@@ -288,7 +363,7 @@ The estimated date of return of supporting documents').': '.format_date($timesta
         break;
 		
 
-}
+} // end switch
 
 } else {
 	$info = '<div class="error"><p class="lead">'.t('Cargo not found').'</p></div>';
@@ -324,14 +399,184 @@ function cargo_status_form_submit($form, $form_state) {
 }
 
 
-function cargo_search($docid) {
 
+function cargo_status_form_incomplete($form, &$form_state) {
+ 
+  $form = array();
+
+	$text = theme('image', array(
+		'path' => drupal_get_path('module', 'cargo_status') . '/dline.png',
+		'alt' => t('Delline'),
+		'title' => t('Delline'),
+		'attributes' => array('class' => 'logo-delline'),
+	));
+
+	$form['info'] = array(
+		'#type' => 'item',
+		'#markup' => '<div class="logo1">'.$text.'</div><div class="state-title lead">'.t("Clarifying criteria").'</div>',
+	);	
+	
+	$face = array(0 => t('Physical'), 1 => t('Legal'));
+
+    $form['face'] = array(
+		'#type' => 'radios',
+		'#title' => t('These recipient'),
+		'#default_value' => 0,
+		'#options' => $face,
+		'#attributes' => array(
+		  'class' => array('radio-inline'),  
+		),		
+    );
+	
+    $form['document'] = array(
+        '#type' => 'select',
+        '#title' => t('Recipient doc'),
+        '#options' => array(
+          'passport' => t('Pasport'),
+          'foreignPassport' => t('Foreign Pasport'),
+          'drivingLicence' => t('Driving Licence'),
+       ),
+        '#default_value' => 'passport',
+		'#states' => array(
+			'visible' => array(
+			  'input[name="face"]' => array(
+				'value' => 0,
+			  ),
+			),
+		  ),
+    );
+	$form['series'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Series'),
+        '#attributes' =>array('placeholder' => t('Series')),
+		'#states' => array(
+			'visible' => array(
+			  'input[name="face"]' => array('value' => 0),
+			),
+			'required' => array(
+			  'select[name="document"]' => array('filled' => TRUE),
+			),
+		  ),
+
+	);
+	$form['number'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Num'),
+        '#attributes' =>array('placeholder' => t('Num')),
+		'#states' => array(
+			'visible' => array(
+			  'input[name="face"]' => array('value' => 0),
+			),
+			'required' => array(
+			  'select[name="document"]' => array('filled' => TRUE),
+			),
+		  ),
+	);
+	$form['inn'] = array(
+		'#type' => 'textfield',
+		'#title' => t('INN'),
+        '#attributes' =>array('placeholder' => t('INN')),
+		'#states' => array(
+			'visible' => array(
+			  'input[name="face"]' => array(
+				'value' => 1,
+			  ),
+			),
+			'required' => array(
+			  'input[name="face"]' => array(
+				'value' => 1,
+			  ),
+			),
+		  ),
+	);
+	
+	$form['date'] = array(
+		'#type' => 'textfield',
+		'#title' => t('The estimated date of dispatch'),
+		'#size' => 9,
+		'#description' => t('The estimated date. +3 days'),
+		'#required' => TRUE,
+		'#attributes' => array(
+		  'class' => array('datepicker'),  
+		),
+	);
+	
+	$form['#attached']['library'][] = array('system', 'ui.datepicker');
+	$form['#attached']['js'][] = drupal_get_path('module', 'cargo_status') . '/cargo_status.js';
+		
+
+  $form['submit'] = array(
+      '#type' => 'submit',
+	  '#value' => t('Check'),
+      '#attributes' => array('class' => array('btn-info')),
+  );
+  
+    // вывод статуса
+	if (isset($form_state['values'])) {
+	$mydata = '';
+	$formdata = $form_state['input'];
+	
+	$timestamp = strtotime($formdata['date']);
+	$date_start = $timestamp - 259200; // - 3 дня
+	$date_end = $timestamp + 259200;   // + 3 дня
+	
+	$mydata = json_encode(array(
+		 "appKey" => variable_get('cargo_status_appkey'), // ключ вашего приложения
+		 "sender" => array(
+			"inn" => variable_get('cargo_status_inn')
+		 ),
+		 "receiver" => array(
+			"inn" => $formdata['inn'],
+			"doc_type" => $formdata['document'],
+			"doc_series" => $formdata['series'],
+			"doc_number" => $formdata['number'],
+		 ),
+		 "date_start" => format_date($date_start, 'custom', 'Y-m-d'),
+		 "date_end" => format_date($date_end, 'custom', 'Y-m-d') 
+	));
+		$res = cargo_search_advanced($mydata);
+
+		$out = array(); $info = '';
+		drupal_add_css(drupal_get_path('module', 'cargo_status') .'/cargo.css');
+		
+		$out = '<div class="freight_info">';
+			if (isset($res['orders']['tracker'][0])) {
+			
+				$resurs = $res['orders']['tracker'][0];				
+					
+				if (!empty($resurs)) {
+
+					$info = '<div class="freight_state" id="freight_state"><p>'.$resurs['condition'].'</p></div>';
+					$info .= '<div id="freight_text">';
+					$info .= '<p><i class="fa fa-car"></i><span class="ml5">'.t("docNumber: ").' </span><strong><a href="/mytracker?id='.$resurs['order']['docNumber'].'" title="'.t('Check').'"> '.$resurs['order']['docNumber'].'</a></strong></p></div>';
+				}
+			} else {
+				$info = '<div class="error"><p class="lead">'.t('Cargo not found').'</p></div>';
+			}
+		$out .= $info;
+		$out .= '</div>';
+		$form['results'] = array('#markup'=>'<div class="delivery-result">'.$out.'</div>');
+	}  
+ 
+  return $form;
+}
+
+function cargo_status_form_incomplete_validate($form, &$form_state) {
+
+  $form_state['rebuild'] = TRUE;
+
+}
+
+
+
+function cargo_search($docid) {
+  
 $decoded_json = array();
 
   if (!empty($docid)) {
   
 $data = json_encode(array(
-	 "appKey" => "F440CADE-CB14-11E5-A0DE-00505683A7D5", // ключ вашего приложения
+	 "appKey" => variable_get('cargo_status_appkey'), // ключ вашего приложения
 	 "docid" => $docid // номер
 ));
 	
@@ -357,8 +602,22 @@ $options = array(
   $decoded_json = drupal_json_decode($result->data);
  // dpm($decoded_json);
 
-
   }
+  
+  return $decoded_json;
+}
+
+function cargo_search_advanced($mydata) {
+
+
+ $options = array(
+    'data' => $mydata,
+	'headers' => array('Content-Type' => 'application/json', 'Accept' => 'application/json')
+  );
+
+  $res = drupal_http_request('https://api.dellin.ru/v1/public/tracker_advanced.json', $options);
+  $decoded_json = drupal_json_decode($res->data);
+  
   
   return $decoded_json;
 }
