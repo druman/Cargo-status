@@ -1,3 +1,6 @@
+#block-cargo-status-cargo {
+	margin-bottom: 15px;
+}
 .delivery-result {
     margin-top: 20px;
 }
@@ -74,4 +77,14 @@
 }
 .advanced-tracker {
 	float:right;
+}
+.icon-question-sign {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-top: 0px !important;
+    line-height: 14px;
+	vertical-align: middle;
+    background: url("icon-hint.png") no-repeat;
+	margin-left:5px;
 }

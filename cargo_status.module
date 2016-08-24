@@ -133,7 +133,7 @@ $form['info'] = array(
 
 $form['docid'] = array(
     '#type' => 'textfield',
-    '#title' => t('Number cargo'),
+    '#title' => t('Number cargo').'<span class="icon-question-sign show-popover" data-toggle="tooltip" title="'.t('Enter your order number , waybill or requests to find out the delivery status of the goods.').'" data-placement="right">&nbsp;</span>',
 	'#default_value' => $def_val,
   );
   
@@ -160,7 +160,8 @@ $out = array(); $info = '';
 $out = '<div class="freight_info">';
 if (isset($res['state'])) {
 $state = $res['state'];
-
+//dpm($state);
+//dpm($res);
 switch ($state) {
 
     case "processing":
@@ -170,8 +171,7 @@ switch ($state) {
         break;
 		
     case "finished":
-		$timestamp = strtotime($res['arrival_date']);
-		$info = '<div class="freight_state finished" id="freight_state"><p>'.$res['state_name'].' '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+		$info = '<div class="freight_state finished" id="freight_state"><p>'.$res['state_name'].'</p></div>';
 		$info .= '<div id="freight_text finished"><p>'.t("Cargo issued").'</p></div>';
         break;
 		
@@ -184,32 +184,32 @@ switch ($state) {
         break;
 		
     case "inway":
-		$timestamp = strtotime($res['arrival_date']);
+		$timestamp = my_order_dates($res);
 		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].'</p></div>';
 		$info .= '<div id="freight_text">';
 		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
-		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><br/>
-       '.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><p>
+       '.t('Arrival info date').': '.$timestamp.'</p></p></div>';
         
         break;
 		
     case "delivery":
-		$timestamp = strtotime($res['arrival_date']);
+		$timestamp = my_order_dates($res);
 		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].' '.t("recipient").'</p></div>';
 		$info .= '<div id="freight_text">';
 		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
-		$info .= '<p>'.$res['state_name'].' '.t("recipient").' '.t("in").'<strong> '.$res['arrival_city'].'</strong><br/>
-       '.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+		$info .= '<p>'.$res['state_name'].' '.t("recipient").' '.t("in").'<strong> '.$res['arrival_city'].'</strong><p>
+       '.t('Arrival info date').': '.$timestamp.'</p></p></div>';
         
         break;
 		
     case "pickup":
-		$timestamp = strtotime($res['arrival_date']);
+		$timestamp = my_order_dates($res);
 		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].'</p></div>';
 		$info .= '<div id="freight_text">';
 		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
-		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><br/>
-       '.t('Arrival date terminal').': '.format_date($timestamp, 'custom', 'j F, Y').'</p></div>';
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><p>
+       '.t('Arrival info date').': '.$timestamp.'</p></p></div>';
         
         break;
 		
@@ -221,14 +221,19 @@ switch ($state) {
         break;
 		
     case "arrived": case "warehousing":
-	
-		$timestamp = strtotime($res['arrival_date']);
-		$warehousing_date = strtotime($res['warehousing_date']);
+
+		$timestamp = my_order_dates($res);
+		$warehousing_date = '';	
+		if (!empty($warehousing_date)) {
+			$warehousing_date = strtotime($res['warehousing_date']);
+			$warehousing_date = format_date($warehousing_date, 'custom', 'j F Y');
+		}		
 		$info = '<div class="freight_state" id="freight_state">';
-		$info .= '<p>'.$res['state_name'].' <strong>'.format_date($timestamp, 'custom', 'j F Y').'</strong></p></div>';
+		$info .= '<p>'.$res['state_name'].'</p></div><p>'.t('Arrival info date').': '.$timestamp.'</p>';
 		$info .= '<div id="freight_text">';
 		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}		
-		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br>'.t("Pay storage begins").' '.format_date($warehousing_date, 'custom', 'j F Y').'</p>';
+		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br/></p>';
+		if ($warehousing_date != '') { $info .='<div>'.t("Pay storage begins").' '.$warehousing_date.'</div>';}
 		$info .= '<div class="map_address">
 					  <strong>'.t("Address").':</strong> '.$res['arrival_terminal_address'].' <br/>
 					  <strong>'.t("Phone").':</strong> '.$res['arrival_terminal_phones'].' <br/>
@@ -236,7 +241,8 @@ switch ($state) {
 					  <strong>'.t("Email").':</strong> '.$res['arrival_terminal_email'].' <br/>
 					  <strong>'.t("Coordinates").':</strong> '.$res['arrival_terminal_coordinates'][0].' '.t("e.d").' '.$res['arrival_terminal_coordinates'][1].' '.t("n.l").' <br/>
 				 </div>';
-		if (!empty($res['worktables'])) {	 
+				 
+		if (!empty($res['worktables'])) {		
 			$wt = array();
 			$info .= '<p> <strong>'.t("Schedule delivery of the goods").':</strong> </p>
 					<table class="table table-bordered"><tr>';
@@ -251,17 +257,17 @@ switch ($state) {
 			}
 			$info .= '</tr><tr>';
 			foreach ($wt as $dw => $work) {
-				$info .= '<td>'.$work.'</td>';
+				$info .= '<td class="text-center txw">'.$work.'</td>';
 			}			
 			$info .= '</tr></table>';
 		}
+		
 		$info .= '</div>';
 		
         break;
 		
     case "received": 
-	
-		$timestamp = strtotime($res['arrival_date']);
+		$timestamp = my_order_dates($res);
 		$info = '<div class="freight_state" id="freight_state">';
 		$info .= '<p>'.$res['state_name'].' </p></div>';
 		$info .= '<div id="freight_text">';
@@ -293,7 +299,7 @@ switch ($state) {
 			}			
 			$info .= '</tr></table>';
 		}
-			$info .= '<p>'.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p>';		
+			$info .= '<p>'.t('Arrival info date').': '.$timestamp.'</p>';		
 		
 		
 		$info .= '</div>';
@@ -302,13 +308,18 @@ switch ($state) {
 		
     case "received_warehousing": 
 	
-		$timestamp = strtotime($res['arrival_date']);
-		$warehousing_date = strtotime($res['warehousing_date']);
+		$timestamp = my_order_dates($res);
+		$warehousing_date = '';	
+		if (!empty($warehousing_date)) {
+			$warehousing_date = strtotime($res['warehousing_date']);
+			$warehousing_date = format_date($warehousing_date, 'custom', 'j F Y');
+		}		
 		$info = '<div class="freight_state" id="freight_state">';
 		$info .= '<p>'.$res['state_name'].' </p></div>';
 		$info .= '<div id="freight_text">';
 		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}		
-		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br>'.t("Pay storage begins").' '.format_date($warehousing_date, 'custom', 'j F Y').'</p>';
+		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br/></p>';
+		if ($warehousing_date != '') { $info .='<div>'.t("Pay storage begins").' '.$warehousing_date.'</div>';}
 		$info .= '<div class="map_address">
 					  <strong>'.t("Address").':</strong> '.$res['arrival_terminal_address'].' <br/>
 					  <strong>'.t("Phone").':</strong> '.$res['arrival_terminal_phones'].' <br/>
@@ -335,7 +346,7 @@ switch ($state) {
 			}			
 			$info .= '</tr></table>';
 		}
-			$info .= '<p>'.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'</p>';		
+			$info .= '<p>'.t('Arrival info date').': '.$timestamp.'</p>';		
 		
 		
 		$info .= '</div>';
@@ -344,14 +355,19 @@ switch ($state) {
 		
     case "airport_warehousing":
 	
-		$timestamp = strtotime($res['arrival_date']);
-		$warehousing_date = strtotime($res['warehousing_date']);
+		$timestamp = my_order_dates($res);
+		$warehousing_date = '';	
+		if (!empty($warehousing_date)) {
+			$warehousing_date = strtotime($res['warehousing_date']);
+			$warehousing_date = format_date($warehousing_date, 'custom', 'j F Y');
+		}		
 		
 		$info = '<div class="freight_state" id="freight_state">';
-		$info .= '<p>'.$res['state_name'].' <strong>'.format_date($timestamp, 'custom', 'j F Y').'</strong></p></div>';
+		$info .= '<p>'.$res['state_name'].'</p></div><p>'.t('Arrival info date').': '.$timestamp.'</p>';
 		$info .= '<div id="freight_text">';
 		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
-		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br>'.t("Pay storage begins").' '.format_date($warehousing_date, 'custom', 'j F Y').'</p>';
+		$info .= '<p>'.t("Cargo expects issuing terminal").' <strong>'.$res['arrival_city'].'</strong><br/></p>';
+		if ($warehousing_date != '') { $info .='<div>'.t("Pay storage begins").' '.$warehousing_date.'</div>';}
 		$info .= '<div class="map_address">
 					  <strong>'.t("Airway bill number").':</strong> '.$res['air_order_id'].' <br/>
 					  <strong>'.t("Comment waybill").':</strong> '.$res['comment'].' <br/>
@@ -360,14 +376,18 @@ switch ($state) {
         break;
 		
     case "accompanying_documents_return":
-		$timestamp = strtotime($res['arrival_date']);
-		$timestamp_documents = strtotime($res['documents_return_date']);
+		$timestamp = my_order_dates($res);
+		$timestamp_documents = '';	
+		if (!empty($timestamp_documents)) {
+			$timestamp_documents = strtotime($res['documents_return_date']);
+			$timestamp_documents = format_date($timestamp_documents, 'custom', 'j F Y');
+		}		
 		$info = '<div class="freight_state" id="freight_state"><p>'.$res['state_name'].'</p></div>';
 		$info .= '<div id="freight_text">';
 		if ($res['blocked_by_payment'] == TRUE) {$info .= '<p class="blocked_by_payment"><span class="tipsy-element" title="Груз будет выдан получателю после оплаты">'.t("Need pay").'</span></p>';}
-		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><br/>
-       '.t('Arrival date').': '.format_date($timestamp, 'custom', 'j F, Y').'<br/>'.t('
-The estimated date of return of supporting documents').': '.format_date($timestamp_documents, 'custom', 'j F, Y').'</p></div>';
+		$info .= '<p>'.t("Route: ").'<strong>'.$res['derival_city'].'</strong> → <strong>'.$res['arrival_city'].'</strong><p>
+       '.t('Arrival info date').': '.$timestamp.'</p><br/>'.t('
+The estimated date of return of supporting documents').': '.$timestamp_documents.'</p></div>';
         
         break;
 		
@@ -387,10 +407,62 @@ $form['results'] = array('#markup'=>'<div class="delivery-result">'.$out.'</div>
 }
   
 //$form['#method'] = 'post';
-$form['#action'] = 'mytracker'; 
-   
+
+$form['#action'] = 'mytracker';  
 
   return $form;
+}
+
+/*
+ * Функция получения пакета параметров "order_dates" http://dev.dellin.ru/api/public/tracker/
+ */ 
+function my_order_dates($res) {
+		$timestamp = '';	$tmp = '';
+		if ($res['is_air'] == FALSE) {
+		  $dates = $res['order_dates'];
+			if (!empty($dates['arrival_to_receiver'])) {
+				$tmp = strtotime($dates['arrival_to_receiver']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Arrival date').': '.$tmp.'</div>';
+			}
+			if (!empty($dates['arrival_to_osp_sender'])) {
+				$tmp = strtotime($dates['arrival_to_osp_sender']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Arrival to terminal sender').': '.$tmp.'</div>';
+			}
+			if (!empty($dates['arrival_to_osp_receiver'])) {
+				$tmp = strtotime($dates['arrival_to_osp_receiver']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Arrival to terminal receiver').': '.$tmp.'</div>';
+			}
+			if (!empty($dates['warehousing'])) {
+				$tmp = strtotime($dates['warehousing']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Warehousing').': '.$tmp.'</div>';
+			}
+			if (!empty($dates['decline_date'])) {
+				$tmp = strtotime($dates['decline_date']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Decline date').': '.$tmp.'</div>';
+			}
+			if (!empty($dates['pickup'])) {
+				$tmp = strtotime($dates['pickup']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Pickup').': '.$tmp.'</div>';
+			}
+		} else {
+			if (!empty($res['arrival_date'])) {
+				$tmp = strtotime($res['arrival_date']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Arrival date').': '.$tmp.'</div>';
+			}
+			if (!empty($res['warehousing_date'])) {
+				$tmp = strtotime($res['warehousing_date']);
+				$tmp = format_date($tmp, 'custom', 'j F Y');
+				$timestamp .= '<div>'.t('Warehousing').': '.$tmp.'</div>';
+			}				
+		}
+	return $timestamp;
 }
 
 function cargo_status_form_validate($form, &$form_state) {
@@ -573,6 +645,22 @@ function cargo_status_form_incomplete($form, &$form_state) {
 function cargo_status_form_incomplete_validate($form, &$form_state) {
 
   $form_state['rebuild'] = TRUE;
+  
+ switch ($form_state['values']['face']) {
+
+    case 0:  
+		if ($form_state['values']['series'] == '') {
+			form_set_error('series', t('Field series is required!'));
+		}	
+		if ($form_state['values']['number'] == '') {
+			form_set_error('number', t('Field number is required!'));
+		}
+	break;
+	case 1:
+		if ($form_state['values']['inn'] == '') {
+			form_set_error('inn', t('Field inn is required!'));
+		}	
+ }
 
 }
 
